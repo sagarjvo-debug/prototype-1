@@ -9,13 +9,14 @@ const initialState = {
         reasoningDepth: 'SERIAL', // SERIAL, PARALLEL
         autoRun: false,
     },
-    status: 'IDLE', // IDLE, PLANNING, EXECUTING, WAITING_USER
+    status: 'IDLE', // IDLE, PLANNING, EXECUTING, VERIFYING, WAITING_USER
     messages: [
         { id: 'm1', role: 'system', content: 'You are an advanced reasoning assistant.' },
         { id: 'm2', role: 'assistant', content: 'Hello! I am ready to help. What is your goal today?' }
     ],
     tasks: [], // Tree structure of tasks
     trace: [], // Linear log of thoughts/actions
+    thoughts: [], // Structured internal monologue { id, content, type: 'plan'|'critique'|'success' }
     artifacts: {}, // Map of artifactId -> content
     currentTaskId: null,
 };
@@ -26,6 +27,8 @@ function agentReducer(state, action) {
             return { ...state, ...action.payload };
         case 'ADD_MESSAGE':
             return { ...state, messages: [...state.messages, action.payload] };
+        case 'ADD_THOUGHT':
+            return { ...state, thoughts: [...state.thoughts, action.payload] };
         case 'UPDATE_CONFIG':
             return { ...state, config: { ...state.config, ...action.payload } };
         case 'SET_STATUS':
@@ -49,7 +52,7 @@ export function AgentProvider({ children }) {
 
     // Simulation Loop
     useEffect(() => {
-        if (state.status === 'PLANNING' || state.status === 'EXECUTING') {
+        if (state.status === 'PLANNING' || state.status === 'EXECUTING' || state.status === 'VERIFYING') {
             if (state.config.autoRun) {
                 const timer = setTimeout(async () => {
                     const nextStep = await runSimulationStep(state);
@@ -71,6 +74,12 @@ export function AgentProvider({ children }) {
                 payload: { id: Date.now().toString(), role: 'user', content }
             });
             dispatch({ type: 'SET_STATUS', payload: 'PLANNING' });
+        },
+        addThought: (content, type = 'plan') => {
+            dispatch({
+                type: 'ADD_THOUGHT',
+                payload: { id: Date.now().toString(), content, type }
+            });
         },
         toggleAutoRun: () => {
             dispatch({

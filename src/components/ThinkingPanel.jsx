@@ -1,146 +1,116 @@
-import React, { useEffect, useRef } from 'react';
-import { Brain, Terminal, Lightbulb, Search } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Brain, MessageSquare, CheckSquare, ChevronDown, ChevronRight, User, Bot } from 'lucide-react';
+import { useAgent } from '../store/agentStore';
 
-const TraceItem = ({ item }) => {
-    const getIcon = () => {
-        switch (item.type) {
-            case 'thought': return <Brain size={14} />;
-            case 'tool_call': return <Terminal size={14} />;
-            case 'reflection': return <Lightbulb size={14} />;
-            default: return <Search size={14} />;
-        }
-    };
+const ThoughtItem = ({ thought }) => {
+  const [expanded, setExpanded] = useState(true);
 
-    return (
-        <div className={`trace-item ${item.type}`}>
-            <div className="trace-icon">
-                {getIcon()}
-            </div>
-            <div className="trace-content">
-                <div className="trace-header">
-                    <span className="trace-type">{item.type.replace('_', ' ')}</span>
-                    <span className="trace-time">
-                        {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                    </span>
-                </div>
+  return (
+    <div className="mb-3 animate-fade-in">
+      <div
+        className="flex items-center gap-2 cursor-pointer text-xs font-medium text-purple-600 mb-1 hover:text-purple-700"
+        onClick={() => setExpanded(!expanded)}
+      >
+        {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        <Brain size={12} />
+        <span>Thinking Process</span>
+      </div>
 
-                {item.type === 'tool_call' ? (
-                    <div className="tool-details">
-                        <div className="tool-name">{item.tool}</div>
-                        <div className="tool-io">
-                            <span className="label">Input:</span> {item.input}
-                        </div>
-                        {item.output && (
-                            <div className="tool-io">
-                                <span className="label">Output:</span> {item.output}
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div className="trace-text">{item.content}</div>
-                )}
-            </div>
-
-            <style>{`
-        .trace-item {
-          display: flex;
-          gap: 12px;
-          margin-bottom: 16px;
-          font-size: 13px;
-          animation: fadeIn 0.3s ease-in-out;
-        }
-        
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(5px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .trace-icon {
-          margin-top: 2px;
-          color: var(--text-secondary);
-        }
-        
-        .trace-item.thought .trace-icon { color: var(--text-accent); }
-        .trace-item.tool_call .trace-icon { color: var(--warning); }
-        .trace-item.reflection .trace-icon { color: var(--success); }
-
-        .trace-content {
-          flex: 1;
-          background: var(--bg-primary);
-          border: 1px solid var(--border-color);
-          border-radius: 8px;
-          padding: 10px;
-        }
-
-        .trace-header {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 6px;
-          font-size: 11px;
-          color: var(--text-secondary);
-          text-transform: uppercase;
-          font-weight: 600;
-        }
-
-        .trace-text {
-          color: var(--text-primary);
-          line-height: 1.4;
-        }
-
-        .tool-details {
-          font-family: monospace;
-          background: var(--bg-tertiary);
-          padding: 8px;
-          border-radius: 4px;
-        }
-
-        .tool-name {
-          color: var(--accent-color);
-          font-weight: bold;
-          margin-bottom: 4px;
-        }
-
-        .tool-io {
-          color: var(--text-secondary);
-          font-size: 12px;
-          word-break: break-all;
-        }
-
-        .label {
-          color: var(--text-primary);
-          font-weight: 600;
-        }
-      `}</style>
+      {expanded && (
+        <div className="ml-2 pl-3 border-l-2 border-purple-100 text-sm text-gray-600 bg-purple-50/30 p-2 rounded-r">
+          {thought.content}
         </div>
-    );
+      )}
+    </div>
+  );
 };
 
-export default function ThinkingPanel({ trace }) {
-    const bottomRef = useRef(null);
+const MessageItem = ({ message }) => {
+  const isUser = message.role === 'user';
 
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [trace]);
+  return (
+    <div className={`flex gap-3 mb-4 ${isUser ? 'flex-row-reverse' : ''}`}>
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isUser ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+        }`}>
+        {isUser ? <User size={16} /> : <Bot size={16} />}
+      </div>
 
-    if (!trace || trace.length === 0) {
-        return <div className="empty-state">Waiting for agent activity...</div>;
-    }
+      <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${isUser
+          ? 'bg-blue-600 text-white rounded-tr-none'
+          : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none shadow-sm'
+        }`}>
+        {message.content}
+      </div>
+    </div>
+  );
+};
 
-    return (
-        <div className="thinking-list">
-            {trace.map((item, index) => (
-                <TraceItem key={index} item={item} />
-            ))}
-            <div ref={bottomRef} />
+const AcceptanceCriteria = () => (
+  <div className="bg-green-50 border border-green-100 rounded-lg p-3 mb-4">
+    <div className="flex items-center gap-2 text-green-700 font-medium text-xs mb-2 uppercase tracking-wide">
+      <CheckSquare size={14} />
+      Acceptance Criteria
+    </div>
+    <ul className="space-y-1.5">
+      {['User can enter a goal', 'Agent decomposes tasks', 'Artifacts are generated'].map((criteria, i) => (
+        <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+          <div className="mt-1 w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />
+          {criteria}
+        </li>
+      ))}
+    </ul>
+  </div>
+);
 
-            <style>{`
-        .empty-state {
-          color: var(--text-secondary);
-          text-align: center;
-          padding: 20px;
-          font-size: 13px;
-        }
-      `}</style>
+export default function ThinkingPanel() {
+  const { state } = useAgent();
+  const { messages, thoughts } = state;
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, thoughts]);
+
+  // Interleave thoughts and messages based on timestamp if possible, 
+  // but for now we'll just show thoughts that happened before the last message or similar.
+  // Simpler approach: Just render the list. 
+  // In a real app, we'd merge and sort. For this prototype, let's assume thoughts come from the agent 
+  // and are usually interleaved with assistant messages.
+
+  // Merging logic (mock):
+  const combinedStream = [
+    ...messages.map(m => ({ ...m, type: 'message' })),
+    ...thoughts.map(t => ({ ...t, type: 'thought' }))
+  ].sort((a, b) => parseInt(a.id) - parseInt(b.id));
+
+  return (
+    <div className="flex flex-col h-full bg-gray-50">
+      <div className="p-3 border-b border-gray-200 bg-white flex items-center justify-between shadow-sm z-10">
+        <div className="flex items-center gap-2 font-semibold text-gray-700">
+          <MessageSquare size={16} />
+          <span>Agent Chat</span>
         </div>
-    );
+        <span className="text-xs text-gray-400">v1.0.0</span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        <AcceptanceCriteria />
+
+        {combinedStream.length === 0 ? (
+          <div className="text-center text-gray-400 text-sm mt-10">
+            Start a conversation to see the agent in action.
+          </div>
+        ) : (
+          combinedStream.map((item) => (
+            item.type === 'thought' ? (
+              <ThoughtItem key={item.id} thought={item} />
+            ) : (
+              <MessageItem key={item.id} message={item} />
+            )
+          ))
+        )}
+        <div ref={bottomRef} />
+      </div>
+    </div>
+  );
 }
