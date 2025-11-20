@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileCode, Play, GitDiff, TerminalSquare, Globe, Maximize2, FileText, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { FileCode, Play, GitCompare, TerminalSquare, Globe, Maximize2, FileText, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useAgent } from '../store/agentStore';
 
 const TabButton = ({ active, icon: Icon, label, onClick }) => (
@@ -131,7 +131,7 @@ export default function ArtifactViewer() {
           <TabButton
             active={activeTab === 'diff'}
             onClick={() => setActiveTab('diff')}
-            icon={GitDiff}
+            icon={GitCompare}
             label="Diff"
           />
           <TabButton
